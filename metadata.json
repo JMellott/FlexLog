@@ -1,0 +1,5 @@
+{
+  "name": "FlexLog",
+  "description": "A technical workout tracker with JSON-based plan sharing, real-time set tracking, and rest timers.",
+  "requestFramePermissions": []
+}

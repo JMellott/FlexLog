@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FlexLog</string>
+    <string name="title_activity_main">FlexLog</string>
+    <string name="package_name">com.flexlog.app</string>
+    <string name="custom_url_scheme">com.flexlog.app</string>
+</resources>
