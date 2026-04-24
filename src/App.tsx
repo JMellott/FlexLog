@@ -13,6 +13,8 @@ export default function App() {
   const [view, setView] = useState<'home' | 'create' | 'workout' | 'settings'>('home');
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
   const [editingPlan, setEditingPlan] = useState<WorkoutPlan | null>(null);
+  const [editingLog, setEditingLog] = useState<WorkoutLog | null>(null);
+  const [isEditingMode, setIsEditingMode] = useState(false);
   const [settings, setSettings] = useState<UserSettings>({ units: 'metric' });
 
   // Load data
@@ -62,7 +64,10 @@ export default function App() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${plan.name || 'workout'}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const importPlan = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,9 +115,54 @@ export default function App() {
   };
 
   const completeWorkout = (log: WorkoutLog) => {
-    setLogs([log, ...logs]);
+    if (editingLog) {
+      setLogs(logs.map(l => l.id === editingLog.id ? log : l));
+    } else {
+      setLogs([log, ...logs]);
+    }
     setView('home');
     setSelectedPlan(null);
+    setEditingLog(null);
+    setIsEditingMode(false);
+  };
+
+  const resumeWorkout = (log: WorkoutLog) => {
+    const plan = plans.find(p => p.id === log.planId);
+    setIsEditingMode(false);
+    if (plan) {
+      setSelectedPlan(plan);
+      setEditingLog(log);
+      setView('workout');
+    } else {
+      // If plan was deleted, we can still resume using the log's data
+      setSelectedPlan({
+        id: log.planId,
+        name: log.planName,
+        exercises: log.exercises,
+        createdAt: log.startTime
+      });
+      setEditingLog(log);
+      setView('workout');
+    }
+  };
+
+  const editWorkoutLog = (log: WorkoutLog) => {
+    const plan = plans.find(p => p.id === log.planId);
+    setIsEditingMode(true);
+    if (plan) {
+      setSelectedPlan(plan);
+      setEditingLog(log);
+      setView('workout');
+    } else {
+      setSelectedPlan({
+        id: log.planId,
+        name: log.planName,
+        exercises: log.exercises,
+        createdAt: log.startTime
+      });
+      setEditingLog(log);
+      setView('workout');
+    }
   };
 
   return (
@@ -124,7 +174,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="flex flex-col h-full p-6"
+            className="flex flex-col h-full px-6 pb-6 pt-12"
           >
             <header className="flex items-center justify-between mb-8">
               <div className="flex items-center space-x-3">
@@ -222,7 +272,20 @@ export default function App() {
                   )}
                 </div>
               ) : (
-                <WorkoutHistory logs={logs} units={settings.units} />
+                <WorkoutHistory 
+                  logs={logs} 
+                  units={settings.units} 
+                  onEdit={editWorkoutLog}
+                  onResume={resumeWorkout}
+                  onUpdateLog={(updatedLog) => {
+                    setLogs(logs.map(l => l.id === updatedLog.id ? updatedLog : l));
+                  }}
+                  onDelete={(id) => {
+                    if (confirm('Delete this log?')) {
+                      setLogs(logs.filter(l => l.id !== id));
+                    }
+                  }}
+                />
               )}
             </div>
 
@@ -279,13 +342,15 @@ export default function App() {
           >
             <ActiveWorkout 
               plan={selectedPlan} 
+              initialLog={editingLog || undefined}
+              isEditing={isEditingMode}
               onComplete={completeWorkout} 
               units={settings.units}
               onExit={() => {
-                if (confirm('Exit workout? Progress will not be saved.')) {
-                  setView('home');
-                  setSelectedPlan(null);
-                }
+                setView('home');
+                setSelectedPlan(null);
+                setEditingLog(null);
+                setIsEditingMode(false);
               }} 
             />
           </motion.div>

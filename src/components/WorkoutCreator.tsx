@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Save, X, Download, Upload, Link as LinkIcon, Unlink, GripVertical, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Save, X, Download, Upload, Link as LinkIcon, Unlink, CheckCircle2 } from 'lucide-react';
 import { WorkoutPlan, Exercise, WorkoutSet, ExerciseType, UnitSystem } from '../types';
-import { Reorder } from 'motion/react';
+import { motion } from 'motion/react';
 
 interface WorkoutCreatorProps {
   onSave: (plan: WorkoutPlan) => void;
@@ -120,6 +120,14 @@ export default function WorkoutCreator({ onSave, onCancel, units, initialPlan }:
     }));
   };
 
+  const moveExercise = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= exercises.length) return;
+    const newExercises = [...exercises];
+    const [movedItem] = newExercises.splice(fromIndex, 1);
+    newExercises.splice(toIndex, 0, movedItem);
+    setExercises(newExercises);
+  };
+
   const handleSave = () => {
     if (!name.trim() || exercises.length === 0) return;
     onSave({
@@ -137,7 +145,10 @@ export default function WorkoutCreator({ onSave, onCancel, units, initialPlan }:
     const a = document.createElement('a');
     a.href = url;
     a.download = `${name || 'workout'}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const importPlan = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,7 +168,7 @@ export default function WorkoutCreator({ onSave, onCancel, units, initialPlan }:
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full pt-12">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Create Plan</h2>
         <div className="flex space-x-2">
@@ -187,80 +198,89 @@ export default function WorkoutCreator({ onSave, onCancel, units, initialPlan }:
         </div>
 
         <div className="space-y-4 max-w-md mx-auto w-full">
-          <Reorder.Group axis="y" values={exercises} onReorder={setExercises} className="space-y-4">
-            {exercises.map((ex, idx) => {
-              const isSuperset = idx > 0 && ex.supersetId && ex.supersetId === exercises[idx - 1].supersetId;
-              const isNextSuperset = idx < exercises.length - 1 && ex.supersetId && ex.supersetId === exercises[idx + 1].supersetId;
-              
-              return (
-                <Reorder.Item 
-                  key={ex.id} 
-                  value={ex}
-                  className="relative pl-8"
-                  initial={false}
-                >
-                  <div className="absolute top-0 bottom-0 left-0 w-8 flex flex-col items-center z-20">
-                    <div className={`w-1 h-full transition-colors ${ex.supersetId ? 'bg-hw-accent' : 'bg-white/5'}`} />
-                    <button 
-                      onClick={() => setSupersetSelector(supersetSelector === idx ? null : idx)}
-                      className={`absolute top-4 -left-1 p-2 rounded-full border shadow-xl transition-all hover:scale-110 active:scale-95 ${
-                        ex.supersetId ? 'bg-hw-accent border-hw-accent text-black' : 'bg-hw-bg border-white/10 text-hw-muted hover:text-white'
-                      }`}
-                      title="Set Superset"
-                    >
-                      <LinkIcon size={16} />
-                    </button>
+          {exercises.map((ex, idx) => {
+            const isSuperset = idx > 0 && ex.supersetId && ex.supersetId === exercises[idx - 1].supersetId;
+            const isNextSuperset = idx < exercises.length - 1 && ex.supersetId && ex.supersetId === exercises[idx + 1].supersetId;
+            
+            return (
+              <motion.div 
+                key={ex.id} 
+                layout
+                className="relative pl-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="absolute top-0 bottom-0 left-0 w-8 flex flex-col items-center z-20">
+                  <div className={`w-1 h-full transition-colors ${ex.supersetId ? 'bg-hw-accent' : 'bg-white/5'}`} />
+                  <button 
+                    onClick={() => setSupersetSelector(supersetSelector === idx ? null : idx)}
+                    className={`absolute top-4 -left-1 p-2 rounded-full border shadow-xl transition-all hover:scale-110 active:scale-95 ${
+                      ex.supersetId ? 'bg-hw-accent border-hw-accent text-black' : 'bg-hw-bg border-white/10 text-hw-muted hover:text-white'
+                    }`}
+                    title="Set Superset"
+                  >
+                    <LinkIcon size={16} />
+                  </button>
 
-                    {supersetSelector === idx && (
-                      <div className="absolute left-10 top-4 z-50 glass-panel p-2 min-w-[160px] shadow-2xl border-hw-accent/20">
-                        <div className="text-[10px] font-bold text-hw-muted uppercase tracking-widest mb-2 px-2">Link to Superset</div>
+                  {supersetSelector === idx && (
+                    <div className="absolute left-10 top-4 z-50 glass-panel p-2 min-w-[160px] shadow-2xl border-hw-accent/20">
+                      <div className="text-[10px] font-bold text-hw-muted uppercase tracking-widest mb-2 px-2">Link to Superset</div>
+                      <button 
+                        onClick={() => setExerciseSuperset(idx, undefined)}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-xs flex items-center justify-between"
+                      >
+                        <span>None</span>
+                        {!ex.supersetId && <CheckCircle2 size={12} className="text-hw-accent" />}
+                      </button>
+                      <button 
+                        onClick={() => setExerciseSuperset(idx, 'new')}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-xs flex items-center text-hw-accent"
+                      >
+                        + New Superset
+                      </button>
+                      {getSupersets().map(([sid, label]) => (
                         <button 
-                          onClick={() => setExerciseSuperset(idx, undefined)}
+                          key={sid}
+                          onClick={() => setExerciseSuperset(idx, sid)}
                           className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-xs flex items-center justify-between"
                         >
-                          <span>None</span>
-                          {!ex.supersetId && <CheckCircle2 size={12} className="text-hw-accent" />}
+                          <span className="truncate mr-2">With: {label}</span>
+                          {ex.supersetId === sid && <CheckCircle2 size={12} className="text-hw-accent" />}
                         </button>
-                        <button 
-                          onClick={() => setExerciseSuperset(idx, 'new')}
-                          className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-xs flex items-center text-hw-accent"
-                        >
-                          + New Superset
-                        </button>
-                        {getSupersets().map(([sid, label]) => (
-                          <button 
-                            key={sid}
-                            onClick={() => setExerciseSuperset(idx, sid)}
-                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-xs flex items-center justify-between"
-                          >
-                            <span className="truncate mr-2">With: {label}</span>
-                            {ex.supersetId === sid && <CheckCircle2 size={12} className="text-hw-accent" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className={`glass-panel p-4 space-y-4 transition-all relative ${
-                    isSuperset ? 'border-t-0 rounded-t-none border-l-0 bg-hw-accent/5' : ''
-                  } ${
-                    isNextSuperset ? 'border-b-0 rounded-b-none border-l-0 bg-hw-accent/5' : ''
-                  }`}>
-                    <div className="flex items-center space-x-2">
-                      <div className="cursor-grab active:cursor-grabbing text-hw-muted p-1">
-                        <GripVertical size={18} />
-                      </div>
-                      <input
-                        type="text"
-                        placeholder="Exercise Name"
-                        className="bg-transparent border-b border-white/10 focus:border-hw-accent outline-none flex-1 py-1 font-bold"
-                        value={ex.name}
-                        onChange={(e) => updateExercise(ex.id, { name: e.target.value })}
-                      />
-                      <button onClick={() => removeExercise(ex.id)} className="text-red-400 p-1">
-                        <Trash2 size={18} />
-                      </button>
+                      ))}
                     </div>
+                  )}
+                </div>
+                
+                <div className={`glass-panel p-4 space-y-4 transition-all relative ${
+                  isSuperset ? 'border-t-0 rounded-t-none border-l-0 bg-hw-accent/5' : ''
+                } ${
+                  isNextSuperset ? 'border-b-0 rounded-b-none border-l-0 bg-hw-accent/5' : ''
+                }`}>
+                  <div className="flex items-center space-x-2">
+                    <div className="flex flex-col items-center mr-1">
+                      <div className="text-[8px] font-bold text-hw-muted uppercase mb-1">Pos</div>
+                      <select 
+                        className="bg-white/5 border border-white/10 rounded px-1 py-1 text-[10px] font-mono outline-none appearance-none text-center min-w-[30px]"
+                        value={idx}
+                        onChange={(e) => moveExercise(idx, parseInt(e.target.value))}
+                      >
+                        {exercises.map((_, i) => (
+                          <option key={i} value={i} className="bg-hw-bg">{i + 1}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Exercise Name"
+                      className="bg-transparent border-b border-white/10 focus:border-hw-accent outline-none flex-1 py-1 font-bold"
+                      value={ex.name}
+                      onChange={(e) => updateExercise(ex.id, { name: e.target.value })}
+                    />
+                    <button onClick={() => removeExercise(ex.id)} className="text-red-400 p-1">
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
 
                     <div className="flex items-center space-x-2">
                       <span className="text-[10px] font-bold text-hw-muted uppercase tracking-widest">Type:</span>
@@ -294,27 +314,33 @@ export default function WorkoutCreator({ onSave, onCancel, units, initialPlan }:
                         {ex.type !== 'duration' && (
                           <input
                             type="number"
+                            inputMode="decimal"
                             className="bg-white/5 rounded-lg py-1 text-center font-mono text-sm"
-                            value={set.reps}
-                            onChange={(e) => updateSet(ex.id, sIdx, { reps: parseInt(e.target.value) || 0 })}
+                            value={set.reps === 0 ? '' : set.reps}
+                            onChange={(e) => updateSet(ex.id, sIdx, { reps: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
+                            placeholder="0"
                           />
                         )}
                         
                         {ex.type === 'weightlifting' && (
                           <input
                             type="number"
+                            inputMode="decimal"
                             className="bg-white/5 rounded-lg py-1 text-center font-mono text-sm"
-                            value={set.weight}
-                            onChange={(e) => updateSet(ex.id, sIdx, { weight: parseFloat(e.target.value) || 0 })}
+                            value={set.weight === 0 ? '' : set.weight}
+                            onChange={(e) => updateSet(ex.id, sIdx, { weight: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0 })}
+                            placeholder="0"
                           />
                         )}
 
                         {ex.type === 'duration' && (
                           <input
                             type="number"
+                            inputMode="decimal"
                             className="col-span-2 bg-white/5 rounded-lg py-1 text-center font-mono text-sm"
-                            value={set.duration}
-                            onChange={(e) => updateSet(ex.id, sIdx, { duration: parseInt(e.target.value) || 0 })}
+                            value={set.duration === 0 ? '' : set.duration}
+                            onChange={(e) => updateSet(ex.id, sIdx, { duration: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
+                            placeholder="0"
                           />
                         )}
 
@@ -331,10 +357,9 @@ export default function WorkoutCreator({ onSave, onCancel, units, initialPlan }:
                     </button>
                   </div>
                 </div>
-              </Reorder.Item>
+              </motion.div>
             );
           })}
-        </Reorder.Group>
         </div>
 
         <button
