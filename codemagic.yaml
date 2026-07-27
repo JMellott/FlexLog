@@ -11,10 +11,9 @@ workflows:
         bundle_identifier: com.jmellott.flexlog
       node: 22
       xcode: latest
-      cocoapods: default
+      cocoapods: none
       vars:
         APP_STORE_APPLE_ID: 6795300186
-        BUNDLE_ID: "com.jmellott.flexlog"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
     scripts:
@@ -36,17 +35,6 @@ workflows:
           cd ios/App
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID")
           agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
-
-      - name: Install CocoaPods dependencies
-        script: |
-          cd ios/App
-          pod install
-
-      - name: Fetch and create signing files
-        script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
 
       - name: Set up code signing settings on Xcode project
         script: |
