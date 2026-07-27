@@ -14,6 +14,7 @@ workflows:
       cocoapods: default
       vars:
         APP_STORE_APPLE_ID: 6795300186
+        BUNDLE_ID: "com.jmellott.flexlog"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
     scripts:
@@ -40,6 +41,12 @@ workflows:
         script: |
           cd ios/App
           pod install
+
+      - name: Fetch and create signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
 
       - name: Set up code signing settings on Xcode project
         script: |
