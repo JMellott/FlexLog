@@ -11,7 +11,7 @@ workflows:
         bundle_identifier: com.jmellott.flexlog
       node: 22
       xcode: latest
-      cocoapods: none
+      cocoapods: default
       vars:
         APP_STORE_APPLE_ID: 6795300186
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
