@@ -14,7 +14,7 @@ workflows:
       cocoapods: default
       vars:
         APP_STORE_APPLE_ID: 6795300186
-        XCODE_WORKSPACE: "ios/App/App.xcworkspace"
+        XCODE_PROJECT: "ios/App/App.xcodeproj"
         XCODE_SCHEME: "App"
     scripts:
       - name: Install Node dependencies
@@ -36,15 +36,28 @@ workflows:
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID")
           agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
 
+      - name: Install CocoaPods dependencies
+        script: |
+          if [ -f "ios/App/Podfile" ]; then
+            cd ios/App
+            pod install
+          fi
+
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
 
       - name: Build iOS App
         script: |
-          xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+          if [ -d "ios/App/App.xcworkspace" ]; then
+            xcode-project build-ipa \
+              --workspace "ios/App/App.xcworkspace" \
+              --scheme "$XCODE_SCHEME"
+          else
+            xcode-project build-ipa \
+              --project "$XCODE_PROJECT" \
+              --scheme "$XCODE_SCHEME"
+          fi
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
