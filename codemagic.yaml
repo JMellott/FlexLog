@@ -41,6 +41,10 @@ workflows:
           cd ios/App
           pod install
 
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+
       - name: Build iOS App
         script: |
           xcode-project build-ipa \
@@ -55,8 +59,6 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        # beta_groups:
-        #   - "internal"
       email:
         recipients:
           - mellott.joshua@gmail.com
