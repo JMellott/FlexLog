@@ -1,20 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+Exercise tracker app.
 
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/e72b8042-eb80-4ef5-9a51-adaaf751fb41
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+Allows you to create custom workouts with sets of exercises. Exercises can be linked to form supersets and sets can be rep, time, or rep and weight based. Rest timer is included as well as ability to pause and resume workouts. History is maintained for progress tracking over time.
